@@ -22,6 +22,16 @@ python -m http.server 8000
 
 > La webcam requiere `localhost` o HTTPS (restricción del navegador).
 
+## Capturas
+
+**App principal** — clasificación en vivo por webcam con barras de probabilidad y la entrada de la red (100×100 grises):
+
+![App principal: webcam clasificando un perro al 97.8%](README/README2.jpg)
+
+**Curso / laboratorio** — la misma foto recorre todas las capas ONNX reales: mapas de activación, vector de 128 y sigmoide final:
+
+![Laboratorio del curso: mapas de activación y predicción gato 91.6%](README/README.png)
+
 ## Estructura
 
 ```
