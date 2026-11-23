@@ -1,0 +1,24 @@
+# --- Dataset de entrenamiento (~864 MB, 25.000 imágenes) ---
+# Se ignoran todas salvo las primeras 20 de cada clase (0.jpg - 19.jpg)
+entrenamiento/data/gatos/*
+entrenamiento/data/perros/*
+!entrenamiento/data/gatos/?.jpg
+!entrenamiento/data/gatos/1?.jpg
+!entrenamiento/data/perros/?.jpg
+!entrenamiento/data/perros/1?.jpg
+entrenamiento/data/_quarantine/
+entrenamiento/data/.scan_done
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# --- Sistema ---
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# --- Comprimidos ---
+modelo.zip

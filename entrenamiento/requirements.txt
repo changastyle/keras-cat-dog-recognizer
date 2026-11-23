@@ -1,0 +1,4 @@
+tensorflow>=2.16
+tf2onnx>=1.17
+onnx>=1.16
+tensorflow-datasets  # solo si usas --tfds

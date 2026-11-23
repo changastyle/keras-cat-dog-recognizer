@@ -1,0 +1,1 @@
+Coloca aquí perros-gatos-cnn-ad3.onnx exportado en Google Colab.

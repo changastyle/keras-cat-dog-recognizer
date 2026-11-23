@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Curso: cómo se entrena la CNN perros-gatos</title>
+<style>
+  :root{--bg:#0f172a;--panel:#1e293b;--panel2:#162033;--fg:#e2e8f0;--muted:#94a3b8;
+        --acc:#38bdf8;--acc2:#f59e0b;--cat:#a78bfa;--dog:#34d399;--line:#334155}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,Segoe UI,sans-serif}
+  header{padding:28px 20px 14px;text-align:center;border-bottom:1px solid var(--line)}
+  header .eyebrow{color:var(--acc);letter-spacing:.2em;font-size:11px;font-weight:700}
+  h1{margin:6px 0 4px;font-size:26px}
+  header p{color:var(--muted);margin:0 auto;max-width:640px}
+  .dots{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:16px}
+  .dot{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--panel);
+       color:var(--muted);display:grid;place-items:center;cursor:pointer;font-size:13px;font-weight:600}
+  .dot.on{background:var(--acc);color:#082f49;border-color:var(--acc)}
+  .dot.done{border-color:var(--acc);color:var(--acc)}
+  main{max-width:880px;margin:0 auto;padding:10px 20px 30px}
+  section{display:none;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px 30px}
+  section.on{display:block;animation:fade .3s}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}}
+  h2{margin:0 0 4px;color:var(--acc)}
+  h3{color:var(--acc2);margin:22px 0 6px}
+  .sub{color:var(--muted);margin-top:0}
+  code,kbd{background:#0b1220;border:1px solid var(--line);border-radius:5px;padding:1px 6px;
+           font-family:Consolas,monospace;font-size:13px;color:#7dd3fc}
+  .formula{background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:12px 16px;
+           font-family:Consolas,monospace;color:#a5f3fc;overflow-x:auto;margin:10px 0}
+  table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13px}
+  th,td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+  th{background:var(--panel2);color:var(--acc)}
+  td.num{font-family:Consolas,monospace;text-align:right}
+  .btn{background:var(--acc);color:#082f49;border:0;border-radius:8px;padding:9px 18px;
+       font-weight:700;cursor:pointer;font-size:14px}
+  .btn.sec{background:var(--panel2);color:var(--fg);border:1px solid var(--line)}
+  .btn:disabled{opacity:.4;cursor:default}
+  nav{display:flex;justify-content:space-between;margin-top:22px}
+  .demo{background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+        padding:18px;margin:16px 0;text-align:center}
+  canvas{image-rendering:pixelated;border-radius:6px}
+  .row{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+  .col{flex:1;min-width:240px}
+  .grid-m{display:inline-grid;gap:0;margin:8px}
+  .cell{width:44px;height:44px;border:1px solid var(--line);display:grid;place-items:center;
+        font-family:Consolas,monospace;font-size:12px;background:#0b1220;transition:background .15s}
+  .cell.k{background:#7c2d12;color:#fecaca}
+  .cell.hot{background:#0c4a6e;outline:2px solid var(--acc2);color:#fff}
+  .cell.out{background:#052e16;color:#86efac}
+  .cell.neg{color:#f87171}
+  .legend{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:8px}
+  .sw{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px}
+  .callout{border-left:3px solid var(--acc2);background:#1c1917;padding:10px 14px;border-radius:0 8px 8px 0;margin:14px 0}
+  .bar{height:22px;border-radius:6px;background:#0b1220;border:1px solid var(--line);overflow:hidden;margin:4px 0}
+  .bar>div{height:100%;transition:width .4s}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin:12px 0}
+  .card{background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+  .card .tag{font-weight:700;margin-top:6px}
+  .tag.gato{color:var(--cat)} .tag.perro{color:var(--dog)}
+  .wrap{display:flex;gap:18px;max-width:1240px;margin:0 auto;padding:0 16px 30px;align-items:flex-start}
+  .wrap main{flex:1;min-width:0;padding:0}
+  #sidePanel{width:200px;flex:none;position:sticky;top:14px;background:var(--panel);
+             border:1px solid var(--line);border-radius:14px;padding:14px;max-height:92vh;overflow-y:auto}
+  #sidePanel h3{margin:0 0 8px;font-size:15px;color:var(--acc)}
+  .sp-drop{border:2px dashed var(--line);border-radius:10px;padding:14px 8px;text-align:center;
+           color:var(--muted);font-size:12px;margin-bottom:10px}
+  .sp-drop.over{border-color:var(--acc);color:var(--acc);background:#0b1220}
+  #spGray{width:100%;border-radius:8px;border:1px solid var(--line);image-rendering:pixelated;display:none}
+  .sp-name{font-size:12px;color:var(--muted);margin:6px 0 10px;word-break:break-word}
+  .sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .sp-grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:2px solid var(--line);
+               cursor:pointer}
+  .sp-grid img:hover{transform:scale(1.06)}
+  .sp-grid img.sel{outline:2px solid var(--acc);outline-offset:1px}
+  .myfoto{border:1px dashed var(--acc2);border-radius:10px;padding:12px 14px;margin:16px 0;
+          background:#151b28}
+  .myfoto .tag{color:var(--acc2);font-size:11px;font-weight:700;letter-spacing:.12em;margin-bottom:8px}
+  .myfoto canvas{image-rendering:pixelated;border:1px solid var(--line);border-radius:4px}
+  .myfoto .row{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .myfoto .cap{font-size:12px;color:var(--muted);margin-top:6px}
+  @media(max-width:900px){.wrap{flex-direction:column}#sidePanel{width:100%;position:static;max-height:none}
+    .sp-grid{grid-template-columns:repeat(6,1fr)}}
+  .lab{display:grid;grid-template-columns:170px 1fr;gap:18px;margin-top:14px}
+  .lab-photos{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start;max-height:560px;overflow-y:auto}
+  .lab-photos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:2px solid var(--line);cursor:grab}
+  .lab-photos img:hover{transform:scale(1.05)}
+  .lab-drop{border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--muted);margin-bottom:12px}
+  .lab-drop.over{border-color:var(--acc);color:var(--acc);background:#0b1220}
+  .stage{background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0;animation:fade .4s}
+  .stage h4{margin:0 0 8px;font-size:13px;color:var(--acc);font-weight:600}
+  .stage canvas{border:1px solid var(--line);border-radius:4px;image-rendering:pixelated;max-width:100%}
+  .stage .cap{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.55}
+  .big{font-size:30px;font-weight:700;margin:8px 0}
+  @media(max-width:700px){.lab{grid-template-columns:1fr}.lab-photos{grid-template-columns:repeat(4,1fr);max-height:none}}
+  footer{color:var(--muted);text-align:center;padding:14px;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">CURSO INTERACTIVO · DEEP LEARNING</div>
+  <h1>Cómo se entrena la CNN perros-gatos</h1>
+  <p>Del dataset de fotos al archivo <code>.onnx</code> que corre en tu navegador — paso a paso, con demos que puedes tocar.</p>
+</header>
+
+<div class="dots" id="dots"></div>
+
+<div class="wrap">
+<aside id="sidePanel">
+  <h3>Tu foto</h3>
+  <div class="sp-drop" id="spDrop">Suelta aquí una imagen<br><small>o elige una miniatura ↓</small></div>
+  <canvas id="spGray" width="100" height="100"></canvas>
+  <div class="sp-name" id="spName">Sin foto aún — los pasos usarán demos genéricas</div>
+  <div class="sp-grid" id="spGrid"></div>
+</aside>
+<main>
+
+<!-- ============ PASO 0: MAPA ============ -->
+<section data-step>
+  <h2>0 · El mapa completo</h2>
+  <p class="sub">Todo el proyecto en una frase: <strong>fotos etiquetadas</strong> → matrices de números → una red que ajusta sus pesos sola → un archivo <code>.onnx</code> → predicción en el navegador.</p>
+  <div class="demo">
+    <div class="formula" style="text-align:center">
+      📷 dataset (fotos perro/gato)<br>↓<br>
+      🔢 preproceso: 100×100 grises /255<br>↓<br>
+      🧠 CNN: Conv→Pool → Conv→Pool → Conv→Pool → GAP → Dense<br>↓<br>
+      📉 loss + backprop: ajustar ~93.000 pesos, época tras época<br>↓<br>
+      📦 modeloCNN3.keras → limpiar capas → <b>export ONNX</b><br>↓<br>
+      🌐 ONNX Runtime Web en app.js: webcam → P(perro)
+    </div>
+  </div>
+  <div class="callout">En los próximos pasos veremos <strong>cada caja de este diagrama con números reales</strong>. No hace falta saber programar: solo matrices y multiplicaciones.</div>
+  <p style="text-align:center;margin-top:14px">
+    <a class="btn sec" href="#" onclick="go(8);return false" style="text-decoration:none">⤳ Ir directo al laboratorio (paso 8): arrastra una foto y mira las capas</a>
+  </p>
+</section>
+
+<!-- ============ PASO 1: DATASET ============ -->
+<section data-step>
+  <h2>1 · El dataset: fotos con etiqueta</h2>
+  <p class="sub">El aprendizaje empieza con datos. Necesitamos muchas fotos de gatos (etiqueta <code>0</code>) y de perros (etiqueta <code>1</code>).</p>
+  <p>En este proyecto se usa el dataset <code>cats_vs_dogs</code> (~23.000 imágenes) o una carpeta propia <code>data/gatos/</code> + <code>data/perros/</code>. Keras asigna las clases por orden alfabético de carpeta.</p>
+  <div class="demo">
+    <div class="cards" id="datasetCards"></div>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--cat)"></span>gato = 0</span>
+      <span><span class="sw" style="background:var(--dog)"></span>perro = 1</span>
+    </div>
+  </div>
+  <h3>Dos divisiones importantes</h3>
+  <table>
+    <tr><th>Split</th><th>Para qué</th></tr>
+    <tr><td><b>Train 80%</b></td><td>Lo que el modelo <em>ve</em> para aprender</td></tr>
+    <tr><td><b>Validation 20%</b></td><td>Fotos guardadas solo para examinar — mide si aprende de verdad o memoriza</td></tr>
+    <tr><td><b>Batch 32</b></td><td>Las fotos se procesan en lotes de 32: más estable y rápido que de una en una</td></tr>
+    <tr><td><b>Época</b></td><td>Una pasada completa por todo el dataset. Se entrena ~15 épocas</td></tr>
+  </table>
+  <div class="myfoto" data-mp="1"></div>
+</section>
+
+<!-- ============ PASO 2: FOTO = MATRIZ ============ -->
+<section data-step>
+  <h2>2 · Una foto es una matriz de números</h2>
+  <p class="sub">La red no ve "un gato": ve una matriz <code>100×100</code> de números entre 0 y 1. <strong>Pinta en el cuadro</strong> (clic o arrastra) y mira la matriz que genera.</p>
+  <div class="demo">
+    <div class="row">
+      <div class="col" style="max-width:340px">
+        <canvas id="paintCv" width="10" height="10" style="width:300px;height:300px;border:2px solid var(--line);cursor:crosshair"></canvas>
+        <div class="legend">Pinta con el ratón — cada celda es un píxel</div>
+        <div style="margin-top:8px">
+          <button class="btn sec" onclick="clearPaint()">Borrar</button>
+          <button class="btn sec" onclick="drawCat()">Dibujar "gato"</button>
+        </div>
+      </div>
+      <div class="col" id="matrixOut" style="overflow-x:auto"></div>
+    </div>
+  </div>
+  <h3>El preproceso exacto de <code>app.js</code></h3>
+  <div class="formula">
+gris = round(0.299·R + 0.587·G + 0.114·B)   ← pesos de cv2.COLOR_RGB2GRAY<br>
+valor = gris / 255                          ← normalizar a [0, 1]<br>
+tensor = [1, 100, 100, 1]                   ← (lote, alto, ancho, canal)
+  </div>
+  <div class="callout">El modelo <strong>no lleva capa de normalización dentro</strong>: la web ya entrega valores 0–1. Entrenar con el mismo formato es la mitad del éxito.</div>
+  <div class="myfoto" data-mp="2"></div>
+</section>
+
+<!-- ============ PASO 3: CONVOLUCION ============ -->
+<section data-step>
+  <h2>3 · Convolución: un filtro que se desliza</h2>
+  <p class="sub">Un <code>Conv2D</code> es una mini-matriz (kernel 3×3) que recorre la imagen multiplicando y sumando. Produce un <strong>mapa de características</strong>. Pulsa "Animar".</p>
+  <div class="demo">
+    <div class="row">
+      <div><div class="legend">Entrada 6×6</div><div id="convIn" class="grid-m" style="grid-template-columns:repeat(6,44px)"></div></div>
+      <div><div class="legend">Kernel 3×3<br>(detector de borde)</div><div id="convK" class="grid-m" style="grid-template-columns:repeat(3,44px)"></div></div>
+      <div><div class="legend">Salida 4×4</div><div id="convOut" class="grid-m" style="grid-template-columns:repeat(4,44px)"></div></div>
+    </div>
+    <div id="convMath" class="formula" style="min-height:44px;margin-top:14px">Pulsa ▶ para ver el cálculo posición a posición</div>
+    <button class="btn" onclick="animConv()">▶ Animar</button>
+    <button class="btn sec" onclick="setupConv()">Reiniciar</button>
+  </div>
+  <h3>Lo que aprende cada capa</h3>
+  <table>
+    <tr><th>Capa</th><th>Filtros</th><th>Aprende a detectar…</th></tr>
+    <tr><td>conv2d 1</td><td>32</td><td>bordes, gradientes, texturas</td></tr>
+    <tr><td>conv2d 2</td><td>64</td><td>formas: orejas, ojos, hocico</td></tr>
+    <tr><td>conv2d 3</td><td>128</td><td>patrones: "oreja puntiaguda", "hocico largo"</td></tr>
+  </table>
+  <p>Al inicio los 9 números de cada filtro son <strong>aleatorios</strong> — detectan ruido. El entrenamiento los afina hasta que activan donde hay rasgos útiles. Eso es "aprender": ajustar filtros.</p>
+  <div class="myfoto" data-mp="3"></div>
+</section>
+
+<!-- ============ PASO 4: RELU + MAXPOOL ============ -->
+<section data-step>
+  <h2>4 · ReLU y MaxPool: limpiar y encoger</h2>
+  <p class="sub"><code>ReLU</code> corta los negativos a 0 (quedarse solo con activaciones). <code>MaxPool 2×2</code> reduce el mapa quedándose con el máximo de cada ventana.</p>
+  <div class="demo">
+    <div class="row">
+      <div><div class="legend">Mapa 4×4 (tras ReLU)</div><div id="poolIn" class="grid-m" style="grid-template-columns:repeat(4,44px)"></div></div>
+      <div style="font-size:34px;align-self:center">→</div>
+      <div><div class="legend">Salida 2×2</div><div id="poolOut" class="grid-m" style="grid-template-columns:repeat(2,44px)"></div></div>
+    </div>
+    <button class="btn" onclick="animPool()" style="margin-top:10px">▶ Animar</button>
+    <button class="btn sec" onclick="setupPool()">Reiniciar</button>
+  </div>
+  <div class="formula">ReLU(x) = max(0, x) &nbsp;&nbsp;·&nbsp;&nbsp; MaxPool([0.8, 0.3 ; 0.1, 0.6]) = 0.8</div>
+  <p>En tu red: <code>100→98</code> (conv valid) → <code>49</code> → <code>47</code> → <code>23</code> → <code>21</code> → <code>10</code>. Cada MaxPool divide por 2 el tamaño, mientras los canales crecen 32→64→128: <strong>menos píxeles, más significado</strong>.</p>
+  <div class="myfoto" data-mp="4"></div>
+</section>
+
+<!-- ============ PASO 5: ARQUITECTURA ============ -->
+<section data-step>
+  <h2>5 · La arquitectura completa</h2>
+  <p class="sub">El modelo servido como <code>perros-gatos-cnn-ad3.onnx</code> (~427 KB ≈ 93K pesos).</p>
+  <table>
+    <tr><th>Capa</th><th>Salida</th><th>Params</th><th>Qué hace</th></tr>
+    <tr><td>Input</td><td class="num">(None, 100, 100, 1)</td><td class="num">0</td><td>matriz gris /255</td></tr>
+    <tr><td>Conv2D 32 + ReLU</td><td class="num">(None, 98, 98, 32)</td><td class="num">320</td><td>32 detectores de borde</td></tr>
+    <tr><td>MaxPool</td><td class="num">(None, 49, 49, 32)</td><td class="num">0</td><td>reduce a la mitad</td></tr>
+    <tr><td>Conv2D 64 + ReLU</td><td class="num">(None, 47, 47, 64)</td><td class="num">18.496</td><td>detectores de formas</td></tr>
+    <tr><td>MaxPool</td><td class="num">(None, 23, 23, 64)</td><td class="num">0</td><td>reduce a la mitad</td></tr>
+    <tr><td>Conv2D 128 + ReLU</td><td class="num">(None, 21, 21, 128)</td><td class="num">73.856</td><td>patrones complejos</td></tr>
+    <tr><td>MaxPool</td><td class="num">(None, 10, 10, 128)</td><td class="num">0</td><td>reduce a la mitad</td></tr>
+    <tr><td>GlobalAveragePool</td><td class="num">(None, 128)</td><td class="num">0</td><td>promedia cada mapa → vector</td></tr>
+    <tr><td>Dense sigmoide</td><td class="num">(None, 1)</td><td class="num">129</td><td>vector → <b>P(perro)</b></td></tr>
+  </table>
+  <div class="callout"><code>GlobalAveragePooling</code> promedia cada mapa 10×10 a un solo número → vector de 128. El <code>Dense</code> final lo mezcla con 128 pesos y lo comprime con la <strong>sigmoide</strong>: σ(x) = 1/(1+e<sup>-x</sup>), siempre entre 0 y 1.</div>
+  <div class="demo">
+    <p style="margin-top:0">Así se interpreta la salida — la misma lógica de <code>app.js</code>:</p>
+    <div class="row" style="max-width:520px;margin:0 auto">
+      <div class="col">
+        <div style="display:flex;justify-content:space-between"><span>🐱 Gato</span><b id="catPct">—</b></div>
+        <div class="bar"><div id="catBar" style="background:var(--cat);width:0%"></div></div>
+        <div style="display:flex;justify-content:space-between"><span>🐶 Perro</span><b id="dogPct">—</b></div>
+        <div class="bar"><div id="dogBar" style="background:var(--dog);width:0%"></div></div>
+      </div>
+    </div>
+    <input type="range" min="0" max="100" value="74" style="width:60%;margin-top:12px" oninput="setProb(this.value)">
+    <div class="legend">Desliza: simula la salida del modelo (P perro)</div>
+  </div>
+</section>
+
+<!-- ============ PASO 6: ENTRENAMIENTO ============ -->
+<section data-step>
+  <h2>6 · Entrenar = equivocarse y corregir</h2>
+  <p class="sub">El bucle mágico. En cada lote de 32 fotos ocurre esto:</p>
+  <div class="formula">
+1. FORWARD&nbsp;&nbsp;: fotos → matrices → P(perro)         ← la red "opina"<br>
+2. LOSS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: error = binary_crossentropy(predicción, etiqueta)<br>
+3. BACKWARD : gradientes → qué pesos causaron el error<br>
+4. UPDATE&nbsp;&nbsp;&nbsp;: adam empuja cada peso un poquito en contra del error
+  </div>
+  <div class="demo">
+    <canvas id="lossCv" width="760" height="220" style="width:100%;max-width:760px;height:220px"></canvas>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--acc)"></span>loss train</span>
+      <span><span class="sw" style="background:var(--acc2)"></span>loss validación</span>
+      <span id="lossInfo">pulsa ▶</span>
+    </div>
+    <button class="btn" onclick="animLoss()">▶ Simular 15 épocas</button>
+  </div>
+  <h3>Tres trucos que ya están en <code>train.py</code></h3>
+  <table>
+    <tr><th>Técnica</th><th>Qué hace</th><th>Para qué</th></tr>
+    <tr><td><code>RandomFlip</code> + <code>RandomRotation</code></td><td>voltea y gira cada foto al azar</td><td>el modelo ve "fotos nuevas" gratis → generaliza (aumento de datos)</td></tr>
+    <tr><td><code>Dropout(0.3)</code></td><td>apaga 30% de neuronas al azar en cada paso</td><td>ninguna neurona memoriza sola → evita overfitting</td></tr>
+    <tr><td><code>EarlyStopping</code></td><td>para si la validación deja de mejorar (4 épocas de paciencia)</td><td>no entrenar de más = no memorizar</td></tr>
+  </table>
+  <div class="demo">
+    <p style="margin-top:0"><b>Dropout en directo</b> — vector de 12 "neuronas"; en train se apagan al azar (gris), en inferencia todas activas:</p>
+    <div id="dropRow" class="grid-m" style="grid-template-columns:repeat(12,44px)"></div>
+    <button class="btn sec" onclick="dropStep()" style="margin-top:8px">Otro paso de training</button>
+    <button class="btn sec" onclick="dropOff()">Modo inferencia</button>
+  </div>
+</section>
+
+<!-- ============ PASO 7: EXPORT ============ -->
+<section data-step>
+  <h2>7 · De .keras a .onnx: limpiar y exportar</h2>
+  <p class="sub">El modelo entrenado tiene capas que solo sirven en training. El notebook las quita antes de exportar.</p>
+  <div class="formula">
+modelo = keras.models.load_model("modeloCNN3.keras", compile=False)<br>
+x = keras.Input(shape=(100, 100, 1))<br>
+for capa in modelo.layers:<br>
+&nbsp;&nbsp;if RandomFlip o RandomRotation: <b>saltar</b>   ← aumento ≠ inferencia<br>
+&nbsp;&nbsp;if Dropout: capa(x, <b>training=False</b>)        ← todas las neuronas activas<br>
+&nbsp;&nbsp;else: x = capa(x)<br>
+modelo_inferencia = keras.Model(entrada, x)  # "perros_gatos_inferencia"<br>
+modelo_inferencia.export("perros-gatos-cnn-ad3.onnx", format="onnx")
+  </div>
+  <p>Se verifica que el modelo limpio predice <strong>idéntico</strong> al original y se exporta. ONNX es un formato estándar: el mismo archivo corre en Python, en un servidor… o en tu navegador con <b>ONNX Runtime Web</b> (WebAssembly).</p>
+  <h3>En la web (<code>app.js</code>)</h3>
+  <div class="formula">
+webcam → canvas 100×100 → grises /255 → ort.Tensor [1,100,100,1]<br>
+→ session.run() cada 500 ms → P(perro) → barras gato/perro
+  </div>
+  <div class="callout"><b>Resumen:</b> fotos → matrices → filtros que se ajustan solos → vector → probabilidad → ONNX → navegador. ¡Ya sabes cómo se entrena este modelo!</div>
+  <p style="text-align:center;margin-top:18px">
+    <a class="btn" href="../" style="text-decoration:none">Abrir la app → probar la webcam</a>
+    <a class="btn sec" href="train.py" style="text-decoration:none;margin-left:8px">Ver train.py</a>
+  </p>
+</section>
+
+<!-- ============ PASO 8: LABORATORIO ============ -->
+<section data-step>
+  <h2>8 · Laboratorio: mira lo que la red ve</h2>
+  <p class="sub">Si elegiste una foto en el panel izquierdo, se ejecuta sola. Si no, arrastra una imagen aquí — la CNN ejecuta cada capa de verdad (ONNX) y pinta sus mapas de activación: bordes → formas → patrones → predicción.</p>
+  <div class="lab" style="grid-template-columns:1fr">
+    <div class="lab-main">
+      <div class="lab-drop" id="labDrop">Arrastra aquí otra imagen — o elige una miniatura del panel ←<div id="labStatus" style="margin-top:8px;font-size:12px;color:var(--acc)"></div></div>
+      <div id="labStages"></div>
+      <div id="labResult" hidden>
+        <div class="row" style="max-width:480px">
+          <div class="col">
+            <div style="display:flex;justify-content:space-between"><span>🐱 Gato</span><b id="labCatPct">—</b></div>
+            <div class="bar"><div id="labCatBar" style="background:var(--cat);width:0%"></div></div>
+            <div style="display:flex;justify-content:space-between"><span>🐶 Perro</span><b id="labDogPct">—</b></div>
+            <div class="bar"><div id="labDogBar" style="background:var(--dog);width:0%"></div></div>
+          </div>
+        </div>
+        <div id="labVerdict" class="big" style="color:var(--acc)"></div>
+      </div>
+      <div class="callout" style="margin-top:14px">
+        <b>¿Qué acabas de ver?</b> Foto → bordes → formas → patrones → 128 "votos" → un número: la probabilidad de perro.
+        Las barras del vector son detectores entrenados (cuánto apareció cada patrón en tu foto); el <code>Dense</code> los pondera con 128 pesos aprendidos y la sigmoide lo convierte en porcentaje.
+        <b>0.78 = 78% seguro de perro</b>; cerca de 0.5 sería "no lo tengo claro"; cerca de 0 o 1 = muy seguro.
+      </div>
+    </div>
+  </div>
+</section>
+
+<nav>
+  <button class="btn sec" id="prev" onclick="go(step-1)">← Anterior</button>
+  <button class="btn" id="next" onclick="go(step+1)">Siguiente →</button>
+</nav>
+</main>
+</div>
+<footer>entrenamiento/index.html · sírvelo con <code>python -m http.server 8000</code> desde la raíz del proyecto</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/ort.min.js"></script>
+<script>
+/* ---------- navegacion ---------- */
+const secs=[...document.querySelectorAll("section[data-step]")],dots=document.getElementById("dots");
+let step=0;
+secs.forEach((s,i)=>{const d=document.createElement("div");d.className="dot";d.textContent=i;
+  d.title=s.querySelector("h2").textContent;d.onclick=()=>go(i);dots.appendChild(d);});
+function go(i){step=Math.max(0,Math.min(secs.length-1,i));
+  secs.forEach((s,j)=>s.classList.toggle("on",j===step));
+  [...dots.children].forEach((d,j)=>{d.classList.toggle("on",j===step);d.classList.toggle("done",j<step);});
+  document.getElementById("prev").disabled=step===0;
+  document.getElementById("next").disabled=step===secs.length-1;
+  window.scrollTo({top:0,behavior:"smooth"});
+  if(typeof updateMyPhotos==="function")updateMyPhotos();
+  if(step===8&&typeof curPhoto!=="undefined"&&curPhoto&&curPhoto!==lastLabPhoto&&!labBusy){lastLabPhoto=curPhoto;labRun(curPhoto);}}
+setTimeout(()=>go(0));
+
+/* ---------- paso 1: tarjetas dataset ---------- */
+(function(){const box=document.getElementById("datasetCards");
+ for(let i=0;i<8;i++){const gato=i%2===0,c=document.createElement("div");c.className="card";
+  const cv=document.createElement("canvas");cv.width=cv.height=8;cv.style.width="100%";
+  const ctx=cv.getContext("2d");
+  for(let y=0;y<8;y++)for(let x=0;x<8;x++){const v=gato?120+Math.random()*100:60+Math.random()*140;
+   ctx.fillStyle=`rgb(${v},${v*0.9},${v*0.8})`;ctx.fillRect(x,y,1,1);}
+  const t=document.createElement("div");t.className="tag "+(gato?"gato":"perro");
+  t.textContent=gato?"gato → 0":"perro → 1";c.append(cv,t);box.appendChild(c);}})();
+
+/* ---------- paso 2: paint -> matriz ---------- */
+const pcv=document.getElementById("paintCv"),pctx=pcv.getContext("2d"),GRID=10;
+const cells=Array.from({length:GRID},()=>Array(GRID).fill(0));
+function renderPaint(){for(let y=0;y<GRID;y++)for(let x=0;x<GRID;x++){
+  const v=cells[y][x];pctx.fillStyle=`rgb(${v*255},${v*255},${v*255})`;pctx.fillRect(x,y,1,1);}
+  let h='<table style="font-family:Consolas,monospace;font-size:11px;text-align:center">';
+  for(let y=0;y<GRID;y++){h+="<tr>";for(let x=0;x<GRID;x++)
+    h+=`<td style="padding:2px 4px;color:${cells[y][x]?'#a5f3fc':'#475569'}">${cells[y][x].toFixed(2)}</td>`;
+    h+="</tr>";}
+  document.getElementById("matrixOut").innerHTML='<div class="legend">Matriz de píxeles (0–1)</div>'+h+"</table>";}
+let painting=false;
+pcv.onmousedown=e=>{painting=true;paint(e)};pcv.onmousemove=e=>painting&&paint(e);
+window.onmouseup=()=>painting=false;
+function paint(e){const r=pcv.getBoundingClientRect();
+  const x=Math.floor((e.clientX-r.left)/r.width*GRID),y=Math.floor((e.clientY-r.top)/r.height*GRID);
+  if(x>=0&&x<GRID&&y>=0&&y<GRID){cells[y][x]=1;renderPaint();}}
+function clearPaint(){cells.forEach(r=>r.fill(0));renderPaint();}
+function drawCat(){clearPaint(); // orejas, ojos, cara en 10x10
+ [[1,1],[1,2],[2,1],[8,1],[8,2],[7,1],[3,4],[6,4],[4,6],[5,6],[3,7],[6,7],[4,8],[5,8]]
+ .forEach(([x,y])=>cells[y][x]=1);renderPaint();}
+drawCat();
+
+/* ---------- paso 3: convolucion ---------- */
+const IN=[[0,0,1,1,0,0],[0,1,1,0,0,0],[1,1,0,0,0,0],[1,0,0,0,1,0],[0,0,0,1,1,0],[0,0,1,1,0,0]];
+const K=[[-1,0,1],[-1,0,1],[-1,0,1]];
+let convTimer=null;
+function setupConv(){clearInterval(convTimer);
+  const mk=(id,m,cls)=>{const el=document.getElementById(id);el.innerHTML="";
+    m.flat().forEach(v=>{const c=document.createElement("div");c.className="cell"+(cls||"");
+      c.textContent=v===undefined?"·":(+v.toFixed(1));el.appendChild(c);});};
+  mk("convIn",IN);mk("convK",K,"k");mk("convOut",Array.from({length:16}));
+  document.getElementById("convMath").textContent="Pulsa ▶ para ver el cálculo posición a posición";}
+function animConv(){setupConv();let i=0;const inC=document.querySelectorAll("#convIn .cell"),
+  outC=document.querySelectorAll("#convOut .cell"),math=document.getElementById("convMath");
+  convTimer=setInterval(()=>{if(i>=16){clearInterval(convTimer);return;}
+    const r=i>>2,c=i%4,terms=[];let sum=0;
+    inC.forEach(c2=>c2.classList.remove("hot"));
+    for(let dy=0;dy<3;dy++)for(let dx=0;dx<3;dx++){
+      const v=IN[r+dy][c+dx],k=K[dy][dx];sum+=v*k;terms.push(`${v}·(${k})`);
+      inC[(r+dy)*6+c+dx].classList.add("hot");}
+    outC[i].textContent=sum.toFixed(0);outC[i].className="cell out"+(sum<0?" neg":"");
+    math.textContent=`(${terms.join(" + ")}) = ${sum.toFixed(0)}${sum<0?"  → ReLU lo dejaría en 0":""}`;
+    i++;},450);}
+setupConv();
+
+/* ---------- paso 4: maxpool ---------- */
+const PIN=[[0.8,0.3,0.0,0.5],[0.1,0.6,0.4,0.2],[0.9,0.0,0.7,0.1],[0.2,0.5,0.3,0.9]];
+let poolTimer=null;
+function setupPool(){clearInterval(poolTimer);
+  const fill=(id,m,cls)=>{const el=document.getElementById(id);el.innerHTML="";
+    m.flat().forEach(v=>{const c=document.createElement("div");c.className="cell"+(cls||"");
+      c.textContent=v===undefined?"·":v.toFixed(1);el.appendChild(c);});};
+  fill("poolIn",PIN);fill("poolOut",[,,,].map(()=>Array(2).fill()));}
+function animPool(){setupPool();let i=0;const inC=document.querySelectorAll("#poolIn .cell"),
+  outC=document.querySelectorAll("#poolOut .cell");
+  poolTimer=setInterval(()=>{if(i>=4){clearInterval(poolTimer);return;}
+    const r=(i>>1)*2,c=(i%2)*2;inC.forEach(x=>x.classList.remove("hot"));
+    let mx=0;for(let dy=0;dy<2;dy++)for(let dx=0;dx<2;dx++){
+      mx=Math.max(mx,PIN[r+dy][c+dx]);inC[(r+dy)*4+c+dx].classList.add("hot");}
+    outC[i].textContent=mx.toFixed(1);outC[i].className="cell out";i++;},700);}
+setupPool();
+
+/* ---------- paso 5: probabilidad ---------- */
+function setProb(v){v=+v;document.getElementById("dogPct").textContent=v.toFixed(1)+"%";
+  document.getElementById("catPct").textContent=(100-v).toFixed(1)+"%";
+  document.getElementById("dogBar").style.width=v+"%";
+  document.getElementById("catBar").style.width=(100-v)+"%";}
+setProb(74);
+
+/* ---------- paso 6: curva loss + dropout ---------- */
+let lossTimer=null;
+function animLoss(){const cv=document.getElementById("lossCv"),ctx=cv.getContext("2d");
+  const W=cv.width,H=cv.height,EP=15;ctx.clearRect(0,0,W,H);ctx.strokeStyle="#334155";
+  ctx.beginPath();ctx.moveTo(40,10);ctx.lineTo(40,H-25);ctx.lineTo(W-10,H-25);ctx.stroke();
+  ctx.fillStyle="#94a3b8";ctx.font="11px sans-serif";ctx.fillText("loss →",45,15);
+  ctx.fillText("épocas →",W-60,H-8);
+  const tLoss=e=>0.7*Math.exp(-e/4)+0.18+Math.random()*0.01;
+  const vLoss=e=>0.7*Math.exp(-e/4.5)+0.24+Math.random()*0.015;
+  const y=v=>H-25-(v/0.8)*(H-45),x=e=>40+(e/(EP-1))*(W-55);
+  let e=0;clearInterval(lossTimer);
+  lossTimer=setInterval(()=>{if(e>EP-1){clearInterval(lossTimer);return;}
+    [[tLoss,"#38bdf8"],[vLoss,"#f59e0b"]].forEach(([f,col])=>{
+      if(e>0){ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.beginPath();
+        ctx.moveTo(x(e-1),y(f(e-1)));ctx.lineTo(x(e),y(f(e)));ctx.stroke();}
+      ctx.fillStyle=col;ctx.beginPath();ctx.arc(x(e),y(f(e)),3.4,0,7);ctx.fill();});
+    document.getElementById("lossInfo").textContent=
+      `época ${e+1}: train=${tLoss(e).toFixed(3)} val=${vLoss(e).toFixed(3)}`;
+    e++;},400);}
+const DR=Array.from({length:12},()=>0.4+Math.random()*0.6);
+function dropRender(mask){const row=document.getElementById("dropRow");row.innerHTML="";
+  DR.forEach((v,i)=>{const c=document.createElement("div");c.className="cell";
+    if(mask&&mask[i]){c.textContent="✕";c.style.color="#475569";c.style.background="#0b1220";}
+    else{c.textContent=v.toFixed(1);c.style.color="#86efac";}row.appendChild(c);});}
+function dropStep(){dropRender(DR.map(()=>Math.random()<0.3));}
+function dropOff(){dropRender(null);}
+dropOff();
+
+/* ---------- paso 8: laboratorio (activaciones reales ONNX) ---------- */
+const LAB_STAGES=[
+ ["s1_conv32","1 · Conv2D 32 filtros + ReLU → 98×98×32","maps",
+  "Cada celda es el mapa de UN filtro: donde brilla, ese filtro detectó su patrón en tu foto. En la primera capa son bordes y gradientes — por eso ves el contorno de la imagen dibujado de 32 maneras distintas."],
+ ["s2_pool49","2 · MaxPool → 49×49","maps",
+  "Mismos mapas a la mitad de tamaño: de cada ventana 2×2 se queda el valor máximo (la señal fuerte). La red gana invariancia — el borde cuenta aunque se mueva 1 px."],
+ ["s3_conv64","3 · Conv2D 64 + ReLU → 47×47","maps",
+  "Segunda convolución: combina bordes en formas — orejas, ojos, hocicos. Los mapas ya no parecen tu foto: son respuestas abstractas."],
+ ["s4_pool23","4 · MaxPool → 23×23","maps",
+  "Otra reducción a la mitad. Menos píxeles, más significado."],
+ ["s5_conv128","5 · Conv2D 128 + ReLU → 21×21","maps",
+  "Tercera convolución, 128 detectores de patrones complejos: texturas de pelaje, siluetas, rasgos de perro/gato. Casi ilegible para nosotros — perfecto para la red."],
+ ["s6_pool10","6 · MaxPool → 10×10","maps",
+  "Última reducción: 128 mapas de 10×10 que resumen toda la imagen."],
+ ["s7_gap128","7 · GlobalAveragePooling → vector de 128","vec",
+  "Cada BARRA = la media de un mapa 10×10 → “¿cuánto se activó ese detector en TODA la foto?”. Barra alta = ese patrón aparece mucho. Ya no es una imagen: es una descripción numérica de lo que la red vio."],
+ ["s8_final","8 · Dense sigmoide → P(perro)","final",
+  "Votación ponderada: logit = w₁·barra₁ + … + w₁₂₈·barra₁₂₈ + bias — 128 pesos aprendidos (cada detector vota a favor o en contra de “perro”). La sigmoide σ(x)=1/(1+e⁻ˣ) comprime el logit a [0,1]: ≥0.5 → perro, <0.5 → gato."]];
+const labCv=document.createElement("canvas"); labCv.width=labCv.height=100;
+const labCtx=labCv.getContext("2d",{willReadFrequently:true});
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+let labSess=null, labBusy=false;
+const labStatus=t=>{document.getElementById("labStatus").textContent=t;};
+async function labEnsure(){
+  if(labSess) return;
+  if(typeof ort==="undefined") throw new Error("ONNX Runtime Web no cargó (CDN bloqueado o sin conexión)");
+  ort.env.wasm.numThreads=1; labSess=[];
+  for(let i=0;i<LAB_STAGES.length;i++){
+    labStatus(`Cargando capas ONNX… ${i+1}/${LAB_STAGES.length}`);
+    labSess.push(await ort.InferenceSession.create(`capas/${LAB_STAGES[i][0]}.onnx`));
+  }
+}
+function labInput(img){
+  labCtx.drawImage(img,0,0,100,100);
+  const d=labCtx.getImageData(0,0,100,100),p=d.data;
+  const hwc=new Float32Array(10000);
+  for(let i=0;i<10000;i++){const k=i*4;
+    const g=Math.round(.299*p[k]+.587*p[k+1]+.114*p[k+2]);
+    hwc[i]=g/255; p[k]=p[k+1]=p[k+2]=g;}
+  labCtx.putImageData(d,0,0);
+  return hwc;
+}
+function renderMaps(cv,data,dims){
+  // detecta NHWC [1,H,W,C] vs NCHW [1,C,H,W]: en NCHW los dos ultimos dims son iguales (H==W)
+  const nchw = dims[2]===dims[3];
+  const C = nchw ? dims[1] : dims[3];
+  const H = nchw ? dims[2] : dims[1];
+  const W = nchw ? dims[3] : dims[2];
+  const show=Math.min(C,64),cols=8,cell=Math.max(20,Math.min(56,Math.round(520/cols)));
+  cv.width=cols*cell; cv.height=Math.ceil(show/cols)*cell;
+  const g=cv.getContext("2d"); g.fillStyle="#000"; g.fillRect(0,0,cv.width,cv.height);
+  const tmp=document.createElement("canvas"); tmp.width=W; tmp.height=H;
+  const tg=tmp.getContext("2d"), id=tg.createImageData(W,H);
+  for(let c=0;c<show;c++){
+    const off=nchw?c*H*W:c, stride=nchw?1:C;
+    let mn=Infinity,mx=-Infinity;
+    for(let i=0;i<H*W;i++){const v=data[off+i*stride];if(v<mn)mn=v;if(v>mx)mx=v;}
+    const rng=(mx-mn)||1;
+    for(let i=0;i<H*W;i++){
+      const v=Math.round((data[off+i*stride]-mn)/rng*255);
+      id.data[i*4]=id.data[i*4+1]=id.data[i*4+2]=v; id.data[i*4+3]=255;}
+    tg.putImageData(id,0,0);
+    g.drawImage(tmp,(c%cols)*cell+1,((c/cols)|0)*cell+1,cell-2,cell-2);
+  }
+}
+function renderVec(cv,data){
+  const n=data.length; cv.width=440; cv.height=90;
+  const g=cv.getContext("2d"), bw=cv.width/n;
+  let mx=1e-9; for(const v of data) if(v>mx) mx=v;
+  for(let i=0;i<n;i++){const h=data[i]/mx*(cv.height-8);
+    g.fillStyle="#38bdf8"; g.fillRect(i*bw,cv.height-h,Math.max(1,bw-.6),h);}
+}
+async function labRun(img){
+  if(labBusy) return; labBusy=true;
+  try{
+    await labEnsure();
+    const stages=document.getElementById("labStages");
+    stages.innerHTML=""; document.getElementById("labResult").hidden=true;
+    const hwc=labInput(img);
+    const card0=document.createElement("div"); card0.className="stage";
+    card0.innerHTML=`<h4>0 · Entrada — 100×100 grises /255${img.dataset.truth?` · verdad: <b>${img.dataset.truth}</b>`:""}</h4>`;
+    const pv=document.createElement("canvas"); pv.width=pv.height=100;
+    pv.getContext("2d").drawImage(labCv,0,0);
+    pv.style.width="120px";pv.style.height="120px";
+    card0.appendChild(pv); stages.appendChild(card0);
+    for(let i=0;i<LAB_STAGES.length;i++){
+      const [,desc,kind,note]=LAB_STAGES[i],s=labSess[i];
+      labStatus(`Ejecutando capa ${i+1}/${LAB_STAGES.length}…`);
+      const out=await s.run({[s.inputNames[0]]:new ort.Tensor("float32",hwc,[1,100,100,1])});
+      const t=out[s.outputNames[0]];
+      const card=document.createElement("div"); card.className="stage";
+      card.innerHTML=`<h4>${desc}</h4>`; stages.appendChild(card);
+      if(kind==="vec"){const cv=document.createElement("canvas");renderVec(cv,t.data);card.appendChild(cv);}
+      else if(kind==="final"){
+        const dog=Math.min(1,Math.max(0,Number(t.data[0]))),cat=1-dog;
+        card.insertAdjacentHTML("beforeend",`<div style="font-size:24px;font-weight:700;color:var(--acc2)">σ → ${dog.toFixed(3)}</div>`);
+        document.getElementById("labResult").hidden=false;
+        document.getElementById("labDogPct").textContent=(dog*100).toFixed(1)+"%";
+        document.getElementById("labCatPct").textContent=(cat*100).toFixed(1)+"%";
+        document.getElementById("labDogBar").style.width=dog*100+"%";
+        document.getElementById("labCatBar").style.width=cat*100+"%";
+        const truth=img.dataset.truth,pred=dog>=.5?"perro":"gato";
+        document.getElementById("labVerdict").textContent=
+          `Predicción: ${pred}`+(truth?` · verdad: ${truth} ${pred===truth?"— ✓ acierta":"— ✗ falla"}`:"");
+      }
+      else{const cv=document.createElement("canvas");renderMaps(cv,t.data,t.dims);card.appendChild(cv);}
+      card.insertAdjacentHTML("beforeend",`<div class="cap">${note}</div>`);
+      card.scrollIntoView({block:"nearest",behavior:"smooth"});
+      await wait(380);
+    }
+    labStatus("Listo — prueba otra foto o arrastra una imagen tuya.");
+  }catch(e){labStatus("Error: "+(e.message||e));console.error(e);}
+  finally{labBusy=false;}
+}
+(function(){
+  const drop=document.getElementById("labDrop");
+  drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("over");});
+  drop.addEventListener("dragleave",()=>drop.classList.remove("over"));
+  drop.addEventListener("drop",e=>{
+    e.preventDefault();drop.classList.remove("over");
+    if(e.dataTransfer.files.length){
+      selectPhoto(URL.createObjectURL(e.dataTransfer.files[0]),null,e.dataTransfer.files[0].name);
+    }else{
+      const src=e.dataTransfer.getData("text/plain"); if(!src)return;
+      selectPhoto(src,src.includes("gato")?"gato":"perro",src.split("/").pop());
+    }
+  });
+})();
+
+/* ---------- foto del usuario: panel lateral permanente ---------- */
+let curPhoto=null,lastLabPhoto=null;
+function photoGray(img){
+  const t=document.createElement("canvas");t.width=t.height=100;
+  const c=t.getContext("2d",{willReadFrequently:true});
+  c.drawImage(img,0,0,100,100);
+  const d=c.getImageData(0,0,100,100),p=d.data,hwc=new Float32Array(10000);
+  for(let i=0;i<10000;i++){const k=i*4;
+    const g=Math.round(.299*p[k]+.587*p[k+1]+.114*p[k+2]);
+    hwc[i]=g/255;p[k]=p[k+1]=p[k+2]=g;}
+  c.putImageData(d,0,0);
+  return {cv:t,hwc};
+}
+function selectPhoto(src,truth,name){
+  const im=new Image();
+  if(truth)im.dataset.truth=truth;
+  im.onload=()=>{
+    curPhoto=im;
+    const sg=document.getElementById("spGray"),g=sg.getContext("2d");
+    g.drawImage(photoGray(im).cv,0,0); sg.style.display="block";
+    document.getElementById("spName").innerHTML=
+      `<b>${name||"imagen"}</b>${truth?` · verdad: <b>${truth}</b>`:""}<br>avanza los pasos y mira qué le pasa ↓`;
+    document.querySelectorAll("#spGrid img").forEach(t=>t.classList.toggle("sel",t.src===im.src));
+    updateMyPhotos();
+    if(step===8&&curPhoto!==lastLabPhoto&&!labBusy){lastLabPhoto=curPhoto;labRun(curPhoto);}
+  };
+  im.src=src;
+}
+const MP_HINT='<div class="tag">TU FOTO</div><div class="cap">Elige una foto en el panel izquierdo — este paso la usará de ejemplo.</div>';
+function mpConv(hwc){ // conv 3x3 detector de borde + ReLU sobre la foto (JS puro)
+  const K=[[-1,0,1],[-1,0,1],[-1,0,1]],H=98,out=new Float32Array(H*H);
+  let mx=1e-9;
+  for(let y=0;y<H;y++)for(let x=0;x<H;x++){
+    let s=0;
+    for(let dy=0;dy<3;dy++)for(let dx=0;dx<3;dx++)
+      s+=hwc[(y+dy)*100+x+dx]*K[dy][dx];
+    s=Math.max(0,s);out[y*H+x]=s;if(s>mx)mx=s;}
+  return {out,H,mx};
+}
+function mapCanvas(data,H,scale){
+  const cv=document.createElement("canvas");cv.width=cv.height=H;
+  const g=cv.getContext("2d"),id=g.createImageData(H,H);
+  let mx=1e-9;for(const v of data)if(v>mx)mx=v;
+  for(let i=0;i<H*H;i++){const v=Math.round(data[i]/mx*255);
+    id.data[i*4]=id.data[i*4+1]=id.data[i*4+2]=v;id.data[i*4+3]=255;}
+  g.putImageData(id,0,0);
+  const big=document.createElement("canvas");big.width=big.height=H*scale;
+  big.style.width=big.style.height=H*scale+"px";big.getContext("2d").drawImage(cv,0,0,H*scale,H*scale);
+  return big;
+}
+function updateMyPhotos(){
+  document.querySelectorAll(".myfoto").forEach(el=>{
+    const mp=el.dataset.mp;
+    if(!curPhoto){el.innerHTML=MP_HINT;return;}
+    const {hwc,cv}=photoGray(curPhoto);
+    const truth=curPhoto.dataset.truth;
+    if(mp==="1"){
+      el.innerHTML=`<div class="tag">TU FOTO EN EL DATASET</div><div class="row">
+        <img src="${curPhoto.src}" style="width:110px;height:110px;object-fit:cover;border-radius:8px;border:2px solid ${truth==="perro"?"var(--dog)":"var(--cat)"}">
+        <div><b>${truth?"clase: "+truth+" → etiqueta "+(truth==="gato"?"0":"1"):"clase desconocida (foto tuya)"}</b>
+        <div class="cap">Así entra una imagen al entrenamiento: archivo + etiqueta numérica.</div></div></div>`;
+    }else if(mp==="2"){
+      const t=document.createElement("canvas");t.width=t.height=10;
+      const tc=t.getContext("2d");tc.drawImage(curPhoto,0,0,10,10);
+      const d=tc.getImageData(0,0,10,10).data;
+      let tbl='<table style="font-family:Consolas,monospace;font-size:10px;text-align:center;border-collapse:collapse">';
+      for(let y=0;y<10;y++){tbl+="<tr>";for(let x=0;x<10;x++){
+        const k=(y*10+x)*4,v=Math.round(.299*d[k]+.587*d[k+1]+.114*d[k+2])/255;
+        tbl+=`<td style="padding:1px 4px;color:${v>.5?"#7dd3fc":"#475569"}">${v.toFixed(2)}</td>`;}
+        tbl+="</tr>";}
+      tbl+="</table>";
+      el.innerHTML=`<div class="tag">TU FOTO COMO MATRIZ</div><div class="row">
+        <img src="${curPhoto.src}" style="width:140px;height:140px;object-fit:cover;border-radius:8px">
+        <div style="font-size:22px;color:var(--muted)">→</div>${tbl}</div>
+        <div class="cap">Reducida a 10×10 para que quepan los números — la red usa 100×100.</div>`;
+    }else if(mp==="3"){
+      const {out,H}=mpConv(hwc);
+      const mc=mapCanvas(out,H,2);
+      el.innerHTML=`<div class="tag">TU FOTO CONVOLUCIONADA</div><div class="row">
+        <img src="${curPhoto.src}" style="width:150px;height:150px;object-fit:cover;border-radius:8px">
+        <div style="font-size:22px;color:var(--muted)">→</div><div class="mcv"></div></div>
+        <div class="cap">Filtro 3×3 detector de bordes verticales + ReLU — mira cómo <b>marca los bordes de tu foto</b>. La red aprende 32 filtros distintos.</div>`;
+      el.querySelector(".mcv").appendChild(mc);
+    }else if(mp==="4"){
+      const {out,H}=mpConv(hwc),P=49,pool=new Float32Array(P*P);
+      for(let y=0;y<P;y++)for(let x=0;x<P;x++){
+        pool[y*P+x]=Math.max(out[2*y*H+2*x],out[2*y*H+2*x+1],out[(2*y+1)*H+2*x],out[(2*y+1)*H+2*x+1]);}
+      const mc1=mapCanvas(out,H,2),mc2=mapCanvas(pool,P,4);
+      el.innerHTML=`<div class="tag">TU FOTO: CONV + RELU → MAXPOOL</div><div class="row">
+        <div class="m1"></div><div style="font-size:22px;color:var(--muted)">→</div><div class="m2"></div></div>
+        <div class="cap">98×98 → MaxPool 2×2 → 49×49: la mitad de píxeles, conserva la señal fuerte.</div>`;
+      el.querySelector(".m1").appendChild(mc1);el.querySelector(".m2").appendChild(mc2);
+    }
+  });
+}
+(function(){
+  const grid=document.getElementById("spGrid"),drop=document.getElementById("spDrop");
+  [...Array(8).keys()].flatMap(i=>[`gato_${i}.jpg`,`perro_${i}.jpg`]).forEach(f=>{
+    const truth=f.startsWith("gato")?"gato":"perro";
+    const im=new Image();im.src="../fotos/"+f;im.dataset.truth=truth;
+    im.title="verdad: "+truth;
+    im.style.borderColor=truth==="gato"?"var(--cat)":"var(--dog)";
+    grid.appendChild(im);
+    im.onclick=()=>selectPhoto(im.src,truth,f);
+  });
+  drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("over");});
+  drop.addEventListener("dragleave",()=>drop.classList.remove("over"));
+  drop.addEventListener("drop",e=>{
+    e.preventDefault();drop.classList.remove("over");
+    if(e.dataTransfer.files.length){
+      const f=e.dataTransfer.files[0];
+      selectPhoto(URL.createObjectURL(f),null,f.name);
+    }
+  });
+  updateMyPhotos();
+})();
+</script>
+</body>
+</html>
